@@ -41,7 +41,7 @@ def get_san_from_host(host: str, port: int) -> list:
     san = list()
     try:
         pem_cert = get_server_certificate((host, port))
-        cert : X509 = load_certificate(FILETYPE_PEM, pem_cert)
+        cert: X509 = load_certificate(FILETYPE_PEM, pem_cert)
         san = get_san(cert)
 
     except ConnectionRefusedError as e:

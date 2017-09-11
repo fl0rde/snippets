@@ -1,12 +1,4 @@
 """
-Extract all subjectAltName or CN entries from a TLS Certificate
-usage: `python sslsan.py [-h] [--port PORT] host`
-
-used packages: pyOpenSSL, asn1crypto
-Tested using Python 3.6.2
-
-Author: Florian Ammon (@riesenwildschaf)
----
 MIT License
 
 Copyright (c) 2017 Florian Ammon
@@ -30,12 +22,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import argparse
 from ssl import get_server_certificate
 
 from OpenSSL.crypto import X509, load_certificate, FILETYPE_PEM
 from asn1crypto.core import Asn1Value
 from asn1crypto.x509 import GeneralNames
+
+
+def get_san(cert: X509) -> list:
+    san = get_subject_alt_name(cert)
+    if not san:
+        san = [get_subject_cn(cert)]
+
+    return san
+
+
+def get_san_from_host(host: str, port: int) -> list:
+    san = list()
+    try:
+        pem_cert = get_server_certificate((host, port))
+        cert = load_certificate(FILETYPE_PEM, pem_cert)
+        san = get_san(cert)
+
+    except ConnectionRefusedError as e:
+        print(e.strerror)
+        exit(1)
+
+    except:
+        exit(1)
+
+    return san
 
 
 def get_subject_alt_name(cert: X509) -> list:
@@ -55,34 +71,3 @@ def get_subject_cn(cert: X509) -> str:
         if comp[0] == b'CN':
             return comp[1].decode()
     return ""
-
-
-def get_san(host: str, port: int) -> list:
-    san = list()
-    try:
-        pem_cert = get_server_certificate((host, port))
-        cert = load_certificate(FILETYPE_PEM, pem_cert)
-        san = get_subject_alt_name(cert)
-        if not san:
-            san = [get_subject_cn(cert)]
-
-    except ConnectionRefusedError as e:
-        print(e.strerror)
-        exit(1)
-
-    except:
-        exit(1)
-
-    return san
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('host', help='hostname or ip')
-    parser.add_argument('--port', type=int, default=443)
-    args = parser.parse_args()
-
-    san = get_san(args.host, args.port)
-    print(*san, sep='\n')
-
-    exit(0)

@@ -1,6 +1,6 @@
 """
-Extract all subjectAltName or CN entries from Certificate Transparency entries
-usage: `usage: ctsslsan.py [-h] [--treesize] [--host HOST] [--start START] [--end END]`
+Extract all subjectAltName or CN entries from a TLS Certificate
+usage: `python sslsan.py [-h] [--port PORT] host`
 
 used packages: pyOpenSSL, asn1crypto
 Tested using Python 3.6.2
@@ -31,22 +31,36 @@ SOFTWARE.
 """
 
 import argparse
+from OpenSSL.crypto import X509, load_certificate, FILETYPE_PEM
 
-from utils.ctutils import get_san_from_ct, get_tree_size
+from ssl import get_server_certificate
+from utils.x509utils import get_san
+
+
+def get_san_from_host(host: str, port: int) -> list:
+    san = list()
+    try:
+        pem_cert = get_server_certificate((host, port))
+        cert: X509 = load_certificate(FILETYPE_PEM, pem_cert)
+        san = get_san(cert)
+
+    except ConnectionRefusedError as e:
+        print(e.strerror)
+        exit(1)
+
+    except:
+        exit(1)
+
+    return san
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--treesize', help='get tree size', action='store_true')
-    parser.add_argument('--host', type=str, default='https://ct.googleapis.com/icarus', help='ct server')
-    parser.add_argument('--start', type=int, default='0')
-    parser.add_argument('--end', type=int, default='-1')
+    parser.add_argument('host', type=str, help='hostname or ip')
+    parser.add_argument('--port', type=int, default=443)
     args = parser.parse_args()
 
-    if args.treesize:
-        print(get_tree_size(args.host))
-        exit(0)
-
-    san = get_san_from_ct(args.host, args.start, args.end)
+    san = get_san_from_host(args.host, args.port)
     print(*san, sep='\n')
 
     exit(0)

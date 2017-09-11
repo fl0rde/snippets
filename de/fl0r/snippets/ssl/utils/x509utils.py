@@ -22,9 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from ssl import get_server_certificate
-
-from OpenSSL.crypto import X509, load_certificate, FILETYPE_PEM
+from OpenSSL.crypto import X509
 from asn1crypto.core import Asn1Value
 from asn1crypto.x509 import GeneralNames
 
@@ -37,25 +35,8 @@ def get_san(cert: X509) -> list:
     return san
 
 
-def get_san_from_host(host: str, port: int) -> list:
-    san = list()
-    try:
-        pem_cert = get_server_certificate((host, port))
-        cert = load_certificate(FILETYPE_PEM, pem_cert)
-        san = get_san(cert)
-
-    except ConnectionRefusedError as e:
-        print(e.strerror)
-        exit(1)
-
-    except:
-        exit(1)
-
-    return san
-
-
 def get_subject_alt_name(cert: X509) -> list:
-    san = []
+    san = list()
     for i in range(cert.get_extension_count()):
         if cert.get_extension(i).get_short_name() == b'subjectAltName':
             general_names = GeneralNames.load(cert.get_extension(i).get_data())

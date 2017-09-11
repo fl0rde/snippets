@@ -31,21 +31,18 @@ SOFTWARE.
 """
 
 import argparse
+from OpenSSL.crypto import X509, load_certificate, FILETYPE_PEM
 from ssl import get_server_certificate
 
-from OpenSSL.crypto import load_certificate, FILETYPE_PEM
-
-from de.fl0r.snippets.x509utils import get_subject_cn, get_subject_alt_name
+from utils.x509utils import get_san
 
 
-def get_san(host: str, port: int) -> list:
+def get_san_from_host(host: str, port: int) -> list:
     san = list()
     try:
         pem_cert = get_server_certificate((host, port))
-        cert = load_certificate(FILETYPE_PEM, pem_cert)
-        san = get_subject_alt_name(cert)
-        if not san:
-            san = [get_subject_cn(cert)]
+        cert : X509 = load_certificate(FILETYPE_PEM, pem_cert)
+        san = get_san(cert)
 
     except ConnectionRefusedError as e:
         print(e.strerror)
@@ -59,11 +56,11 @@ def get_san(host: str, port: int) -> list:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', help='hostname or ip')
+    parser.add_argument('host', type=str, help='hostname or ip')
     parser.add_argument('--port', type=int, default=443)
     args = parser.parse_args()
 
-    san = get_san(args.host, args.port)
+    san = get_san_from_host(args.host, args.port)
     print(*san, sep='\n')
 
     exit(0)

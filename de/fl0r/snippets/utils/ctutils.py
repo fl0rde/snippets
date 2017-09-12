@@ -26,9 +26,9 @@ import json
 import urllib.request
 from OpenSSL.crypto import load_certificate, FILETYPE_ASN1, X509
 from base64 import b64decode
+from pathlib import Path
 from struct import unpack
 from typing import Generator
-from pathlib import Path
 
 from .x509utils import get_san
 
@@ -57,8 +57,7 @@ def get_tree_size(host: str) -> int:
     return size
 
 
-def download_entries(host: str, start: int, end: int):
-    filename = f'{start}-{end}'
+def download_entries(host: str, start: int, end: int, filename: str):
     if not Path(filename).is_file():
         urllib.request.urlretrieve(host + f'/ct/v1/get-entries?start={start}&end={end}', filename=filename)
 
@@ -66,6 +65,7 @@ def download_entries(host: str, start: int, end: int):
 def read_entries(host: str, start: int, end: int, buffer: int) -> Generator[str, None, None]:
     data = ''
     filename = f'{start}-{end}'
+    download_entries(host, start, end, filename)
 
     with open(filename, 'r') as tmp:
         begin = 0
@@ -109,9 +109,9 @@ def extract_leafs(data: str) -> Generator[tuple, None, None]:
 
 
 def get_san_from_ct(host: str, start: int, end: int) -> Generator[str, None, None]:
-    download_entries(host, start, end)
-    for entry in read_entries(host, start, end, 1000000):
-        cert = extract_certificate_from_leaf(b64decode(entry))
-        if cert:
-            for san in get_san(cert):
-                yield san
+    for s in range(start, end, 500):
+        for entry in read_entries(host, s, min(s+500, end), 1000000):
+            cert = extract_certificate_from_leaf(b64decode(entry))
+            if cert:
+                for san in get_san(cert):
+                    yield san

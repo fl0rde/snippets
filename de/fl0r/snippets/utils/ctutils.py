@@ -27,6 +27,8 @@ import urllib.request
 from OpenSSL.crypto import load_certificate, FILETYPE_ASN1, X509
 from base64 import b64decode
 from struct import unpack
+from typing import Generator
+from pathlib import Path
 
 from .x509utils import get_san
 
@@ -55,20 +57,61 @@ def get_tree_size(host: str) -> int:
     return size
 
 
-def get_san_from_ct(host: str, start: int, end: int) -> list:
-    json_decoder = json.JSONDecoder()
+def download_entries(host: str, start: int, end: int):
+    filename = f'{start}-{end}'
+    if not Path(filename).is_file():
+        urllib.request.urlretrieve(host + f'/ct/v1/get-entries?start={start}&end={end}', filename=filename)
 
-    if end < 0:
-        end = start + 1000
 
-    request = urllib.request.urlopen(host + f'/ct/v1/get-entries?start={start}&end={end}')
-    entries_str = request.read().decode()
-    entries = json_decoder.decode(entries_str)['entries']
+def read_entries(host: str, start: int, end: int, buffer: int) -> Generator[str, None, None]:
+    data = ''
+    filename = f'{start}-{end}'
 
-    san = list()
-    for entry in entries:
-        cert = extract_certificate_from_leaf(b64decode(entry['leaf_input']))
+    with open(filename, 'r') as tmp:
+        begin = 0
+        chunk = tmp.read(buffer)
+        while chunk:
+            data = data[begin:] + chunk
+            chunk = tmp.read(buffer)
+
+            for border in extract_leafs(data):
+                begin = end
+                yield (data[border[0]:border[1]])
+
+
+def extract_leafs(data: str) -> Generator[tuple, None, None]:
+    begin = 0
+    end = 0
+
+    while True:
+        begin += end
+        tmp = data[begin:]
+
+        leaf = tmp.find('"leaf_input"')
+        if leaf < 0:
+            break
+        else:
+            leaf += 12
+
+        start = tmp[leaf:].find('"')
+        if start < 0:
+            break
+        else:
+            start += 1 + leaf
+
+        end = tmp[start:].find('"')
+        if end < 0:
+            break
+        else:
+            end += start
+
+        yield((begin + start, begin + end))
+
+
+def get_san_from_ct(host: str, start: int, end: int) -> Generator[str, None, None]:
+    download_entries(host, start, end)
+    for entry in read_entries(host, start, end, 1000000):
+        cert = extract_certificate_from_leaf(b64decode(entry))
         if cert:
-            san.extend(get_san(cert))
-
-    return san
+            for san in get_san(cert):
+                yield san

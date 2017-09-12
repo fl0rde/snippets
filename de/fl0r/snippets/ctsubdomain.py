@@ -24,53 +24,61 @@ SOFTWARE.
 
 import argparse
 from collections import Counter
+from typing import Generator
+from ipaddress import ip_address
 
-from utils.ctutils import get_san_from_ct, get_tree_size
+from utils.ctutils import get_san_from_ct
 
 
 def split_domain(domain):
-  result = []
-  result.append(domain)
-  splitted = domain.split('.')
-  length = len(splitted)
-  result.append(splitted[-1])
-  result.append(".".join(splitted[-2:]))
-  result.append(".".join(splitted[:-2]))
-  if(length > 2):
-    result.append(splitted[0])
-  for i in range(1,length-2):
-    result.append("*."+".".join(splitted[1:i+1]))
-  return result
+    result = list([domain])
+    splitted = domain.split('.')
+    length = len(splitted)
+    result.append(splitted[-1])
+    result.append(".".join(splitted[-2:]))
+    result.append(".".join(splitted[:-2]))
+    if length > 2:
+        result.append(splitted[0])
+    for i in range(1, length - 2):
+        result.append("*." + ".".join(splitted[1:i + 1]))
+    return result
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--treesize', help='get tree size', action='store_true')
     parser.add_argument('--host', type=str, default='https://ct.googleapis.com/icarus', help='ct server')
-    parser.add_argument('--start', type=int, default='0', help='entry to start')
-    parser.add_argument('--end', type=int, default='-1', help='start + 1000 if missing')
+    parser.add_argument('--start', type=int, default='100000', help='entry to start')
+    parser.add_argument('--end', type=int, help='start + 500 if missing')
     args = parser.parse_args()
 
-    if args.treesize:
-        print(get_tree_size(args.host))
-        exit(0)
+    if not args.end:
+        args.end = args.start+500
 
-    san = get_san_from_ct(args.host, 2000000, 2001000)
     domains = set()
+    san = get_san_from_ct(args.host, args.start, args.end)
     for entry in san:
         domains.add(entry)
 
     subdomains = list()
     wildcards = list()
+
     for entry in domains:
+        try:
+            ip_address(entry)
+            continue
+        except:
+            pass
+
         splitted = split_domain(entry)
         if len(splitted) > 4:
-            subdomains.append(splitted[4])
+            subdomains.append((splitted[4], splitted[1]))
+
         for i in range(5, len(splitted)):
-            wildcards.append(splitted[i])
+            wildcards.append((splitted[i], splitted[1]))
+
     counted_sd = Counter(subdomains)
     counted_wc = Counter(wildcards)
+
     print(counted_sd)
     print(counted_wc)
-
-

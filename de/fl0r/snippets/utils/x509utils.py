@@ -30,7 +30,7 @@ from asn1crypto.x509 import GeneralNames
 def get_san(cert: X509) -> list:
     san = get_subject_alt_name(cert)
     if not san:
-        san = [get_subject_cn(cert)]
+        san = list(get_subject_cn(cert))
 
     return san
 

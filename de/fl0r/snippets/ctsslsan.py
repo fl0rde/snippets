@@ -38,13 +38,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--treesize', help='get tree size', action='store_true')
     parser.add_argument('--host', type=str, default='https://ct.googleapis.com/icarus', help='ct server')
-    parser.add_argument('--start', type=int, default='0', help='entry to start')
-    parser.add_argument('--end', type=int, default='-1', help='start + 1000 if missing')
+    parser.add_argument('--start', type=int, default='100000', help='entry to start')
+    parser.add_argument('--end', type=int, help='start + 500 if missing')
     args = parser.parse_args()
 
     if args.treesize:
         print(get_tree_size(args.host))
         exit(0)
+
+    if not args.end:
+        args.end = args.start + 500
 
     san = get_san_from_ct(args.host, args.start, args.end)
     print(*san, sep='\n')

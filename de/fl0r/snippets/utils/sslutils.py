@@ -45,11 +45,11 @@ def get_cert_from_https(host: str, port: int = 443) -> X509:
     return cert
 
 
-def get_cert_from_smtp(host: str) -> X509:
+def get_cert_from_smtp(host: str, port: int = 25) -> X509:
     cert = None
 
     try:
-        with SMTP(host=host) as smtp:
+        with SMTP(host=host, port=port) as smtp:
             smtp.starttls()
             der_cert = smtp.sock.getpeercert(True)
             cert = load_certificate(FILETYPE_ASN1, der_cert)
@@ -65,11 +65,11 @@ def get_cert_from_smtp(host: str) -> X509:
     return cert
 
 
-def get_cert_from_smtps(host: str) -> X509:
+def get_cert_from_smtps(host: str, port: int = 465) -> X509:
     cert = None
 
     try:
-        with SMTP_SSL(host=host) as smtp:
+        with SMTP_SSL(host=host, port=port) as smtp:
             der_cert = smtp.sock.getpeercert(True)
             cert = load_certificate(FILETYPE_ASN1, der_cert)
 

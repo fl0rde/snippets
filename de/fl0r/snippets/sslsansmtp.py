@@ -72,10 +72,10 @@ if __name__ == '__main__':
         hosts.append(args.host)
 
     for host in hosts:
-        cert = get_cert_from_smtp(host)
+        cert = get_cert_from_smtp(host, args.smtpport)
         add_hosts(san, cert)
 
-        cert = get_cert_from_smtps(host)
+        cert = get_cert_from_smtps(host, args.smtpsport)
         add_hosts(san, cert)
 
     print(*[f'HOST: {host}' for host in san], sep='\n')

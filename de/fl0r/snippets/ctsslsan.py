@@ -50,6 +50,6 @@ if __name__ == '__main__':
         args.end = args.start + 500
 
     san = get_san_from_ct(args.host, args.start, args.end)
-    print(*san, sep='\n')
+    print(*[f'HOST: {host}' for host in san], sep='\n')
 
     exit(0)

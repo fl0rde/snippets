@@ -1,6 +1,6 @@
 """
-Extract all subjectAltName or CN entries from a TLS Certificate (SMTP(S)-Server)
-usage: sslsansmtp.py [-h] [--smtpport SMTPPORT] [--smtpsport SMTPSPORT] [--MX] host
+Extract all subjectAltName or CN entries from Certificate Transparency entries
+usage: `python sslsanct.py [-h] [--treesize] [--host HOST] [--start START] [--end END]`
 
 used packages: pyOpenSSL, asn1crypto
 Tested using Python 3.6.2
@@ -31,53 +31,25 @@ SOFTWARE.
 """
 
 import argparse
-import dns.resolver
-from typing import Generator
 
-from utils.sslutils import get_cert_from_smtps, get_cert_from_smtp
-from utils.x509utils import get_san
-
-
-def dns_query(host: str, entry: str) -> Generator:
-    try:
-        answers = dns.resolver.query(host, entry)
-        for data in answers:
-            yield (data.exchange)
-    except dns.resolver.NoAnswer as e:
-        pass
-
-
-def add_hosts(hosts, cert):
-    if cert:
-        for san in get_san(cert):
-            hosts.add(san)
-
+from utils.ctutils import get_san_from_ct, get_tree_size
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', type=str, help='hostname or ip')
-    parser.add_argument('--smtpport', type=int, default=25)
-    parser.add_argument('--smtpsport', type=int, default=465)
-    parser.add_argument('--MX', help='search MX entries of host', action="store_true")
+    parser.add_argument('--treesize', help='get tree size', action='store_true')
+    parser.add_argument('--host', type=str, default='https://ct.googleapis.com/icarus', help='ct server')
+    parser.add_argument('--start', type=int, default='0', help='entry to start')
+    parser.add_argument('--end', type=int, help='start + 500 if missing')
     args = parser.parse_args()
 
-    san = set()
-    hosts = list()
+    if args.treesize:
+        print(get_tree_size(args.host))
+        exit(0)
 
-    if args.MX:
-        for host in dns_query(args.host, 'MX'):
-            hosts.append(str(host))
+    if not args.end:
+        args.end = args.start + 500
 
-    else:
-        hosts.append(args.host)
-
-    for host in hosts:
-        cert = get_cert_from_smtp(host, args.smtpport)
-        add_hosts(san, cert)
-
-        cert = get_cert_from_smtps(host, args.smtpsport)
-        add_hosts(san, cert)
-
+    san = get_san_from_ct(args.host, args.start, args.end)
     print(*[f'HOST: {host}' for host in san], sep='\n')
 
     exit(0)

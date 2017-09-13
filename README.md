@@ -11,7 +11,7 @@ This is just a collection of snippets to extract subjectAltName entries from sev
 
 Example scripts can be found in [/de/fl0r/sslsan](/de/fl0r/sslsan), usages are mentioned in the comment in the files above. Running each script with `python <script> -h` may give you some additional information.
 
-All beeded CT and SSL/TLS functions can be found in [/de/fl0r/sslsan/utils](/de/fl0r/sslsan/utils).
+All needed CT and SSL/TLS functions can be found in [/de/fl0r/sslsan/utils](/de/fl0r/sslsan/utils).
 
 ### Prerequisites
 

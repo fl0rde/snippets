@@ -2,7 +2,7 @@
 Extract all subjectAltName or CN entries from a TLS Certificate (SMTP(S)-Server)
 usage: `python sslsansmtp.py [-h] [--smtpport SMTPPORT] [--smtpsport SMTPSPORT] [--MX] host`
 
-used packages: pyOpenSSL, asn1crypto
+used packages: pyOpenSSL, asn1crypto, dnspython
 Tested using Python 3.6.2
 
 Author: Florian Ammon (@riesenwildschaf)

@@ -2,10 +2,10 @@
 
 This is just a collection of snippets to extract subjectAltName entries from several SSL/TLS services, such as:
 
-* HTTPS
-* STARTTLS
-* SMTPS
-* Certificate-Transparency
+* [HTTPS](/de/fl0r/sslsan/sslsanhttps.py)
+* [STARTTLS](/de/fl0r/sslsan/sslsansmtp.py)
+* [SMTPS](/de/fl0r/sslsan/sslsansmtp.py)
+* [Certificate Transparency](/de/fl0r/sslsan/sslsanct.py)
 
 ## Getting Started
 

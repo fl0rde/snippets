@@ -23,37 +23,21 @@ SOFTWARE.
 """
 
 import argparse
+import tldextract
 from collections import Counter
-from typing import Generator
-from ipaddress import ip_address
 
 from utils.ctutils import get_san_from_ct
-
-
-def split_domain(domain):
-    result = list([domain])
-    splitted = domain.split('.')
-    length = len(splitted)
-    result.append(splitted[-1])
-    result.append(".".join(splitted[-2:]))
-    result.append(".".join(splitted[:-2]))
-    if length > 2:
-        result.append(splitted[0])
-    for i in range(1, length - 2):
-        result.append("*." + ".".join(splitted[1:i + 1]))
-    return result
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--treesize', help='get tree size', action='store_true')
     parser.add_argument('--host', type=str, default='https://ct.googleapis.com/icarus', help='ct server')
-    parser.add_argument('--start', type=int, default='100000', help='entry to start')
+    parser.add_argument('--start', type=int, default='0', help='entry to start')
     parser.add_argument('--end', type=int, help='start + 500 if missing')
     args = parser.parse_args()
 
     if not args.end:
-        args.end = args.start+500
+        args.end = args.start + 500
 
     domains = set()
     san = get_san_from_ct(args.host, args.start, args.end)
@@ -61,24 +45,15 @@ if __name__ == '__main__':
         domains.add(entry)
 
     subdomains = list()
-    wildcards = list()
 
-    for entry in domains:
-        try:
-            ip_address(entry)
-            continue
-        except:
-            pass
+    for domain in domains:
+        extracted = tldextract.extract(domain)
+        splitted = extracted.subdomain.split('.')
 
-        splitted = split_domain(entry)
-        if len(splitted) > 4:
-            subdomains.append((splitted[4], splitted[1]))
+        if splitted and splitted[0]:
+            subdomains.append((splitted[0], extracted.suffix))
+            for i in range(1, len(splitted)):
+                subdomains.append((".".join(splitted[:i]), extracted.suffix))
 
-        for i in range(5, len(splitted)):
-            wildcards.append((splitted[i], splitted[1]))
-
-    counted_sd = Counter(subdomains)
-    counted_wc = Counter(wildcards)
-
-    print(counted_sd)
-    print(counted_wc)
+    counted = Counter(subdomains)
+    print(counted)

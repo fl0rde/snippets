@@ -68,18 +68,18 @@ def read_entries(host: str, start: int, end: int, buffer: int) -> Generator[str,
     download_entries(host, start, end, filename)
 
     with open(filename, 'r') as tmp:
-        begin = 0
+        begin_data = 0
         chunk = tmp.read(buffer)
         while chunk:
-            data = data[begin:] + chunk
+            data = data[begin_data:] + chunk
             chunk = tmp.read(buffer)
 
-            for border in extract_leafs(data):
-                begin = end
-                yield (data[border[0]:border[1]])
+            for (start_leaf, end_leaf) in find_leafs(data):
+                begin_data = end_leaf
+                yield (data[start_leaf:end_leaf])
 
 
-def extract_leafs(data: str) -> Generator[tuple, None, None]:
+def find_leafs(data: str) -> Generator[tuple, None, None]:
     begin = 0
     end = 0
 

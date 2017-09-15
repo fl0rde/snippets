@@ -24,13 +24,13 @@ SOFTWARE.
 
 from OpenSSL.crypto import X509
 from asn1crypto.core import Asn1Value
-from asn1crypto.x509 import GeneralNames
+from asn1crypto.x509 import GeneralNames, IPAddress, DNSName
 
 
 def get_san(cert: X509) -> list:
     san = get_subject_alt_name(cert)
     if not san:
-        san = list(get_subject_cn(cert))
+        san = get_subject_cn(cert)
 
     return san
 
@@ -41,14 +41,15 @@ def get_subject_alt_name(cert: X509) -> list:
         if cert.get_extension(i).get_short_name() == b'subjectAltName':
             general_names = GeneralNames.load(cert.get_extension(i).get_data())
             for general_name in general_names:
-                value = Asn1Value.load(general_name.contents)
-                san.append(value.contents.decode())
+                if general_name.name in ('dns_name', 'ip_address'):
+                    value = Asn1Value.load(general_name.contents)
+                    san.append(value.contents.decode())
             break
     return san
 
 
-def get_subject_cn(cert: X509) -> str:
+def get_subject_cn(cert: X509) -> list:
     for comp in cert.get_subject().get_components():
         if comp[0] == b'CN':
-            return comp[1].decode()
-    return ""
+            return [comp[1].decode()]
+    return []
